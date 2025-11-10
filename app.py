@@ -1,32 +1,34 @@
 import streamlit as st
-import sounddevice as sd
 import numpy as np
 import geocoder
 import folium
 from streamlit_folium import st_folium
+import random
 
-st.title("🌍 Real-Time Noise Level Detector")
+st.title("🌍 Real-Time Noise Level Mapper")
+st.write("This demo simulates noise levels and shows them on a map based on your location.")
 
-st.write("This app records ambient sound, estimates the noise level, and shows your location on a map.")
+# Step 1: Get location
+st.subheader("📍 Your Current Location")
+g = geocoder.ip('me')
+lat, lon = g.latlng if g.latlng else (22.5726, 88.3639)
+st.write(f"Latitude: {lat}, Longitude: {lon}")
 
-duration = st.slider("Recording duration (seconds)", 2, 10, 3)
+# Step 2: Simulate noise data
+st.subheader("🎤 Simulated Noise Measurement")
+if st.button("Measure Noise"):
+    noise_level = random.uniform(30, 90)  # Simulate dB value
+    st.success(f"Noise Level: {noise_level:.2f} dB")
 
-if st.button("🎤 Record Now"):
-    st.info("Recording ambient sound...")
-    fs = 44100
-    recording = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='float64')
-    sd.wait()
-    volume_norm = np.linalg.norm(recording) * 10
-    noise_level = 20 * np.log10(volume_norm + 1e-6)
-    noise_level = round(noise_level, 2)
+    # Step 3: Display map
+    m = folium.Map(location=[lat, lon], zoom_start=14)
+    folium.Marker(
+        [lat, lon],
+        popup=f"Noise: {noise_level:.2f} dB",
+        tooltip="Noise Location",
+        icon=folium.Icon(color="red" if noise_level > 70 else "green"),
+    ).add_to(m)
+    st_data = st_folium(m, width=700, height=500)
+else:
+    st.info("Click the button above to simulate a noise measurement.")
 
-    g = geocoder.ip('me')
-    loc = g.latlng if g.latlng else [0, 0]
-
-    st.success(f"Noise Level: **{noise_level} dB**")
-
-    # Display map
-    m = folium.Map(location=loc, zoom_start=12)
-    color = "green" if noise_level < 50 else "orange" if noise_level < 70 else "red"
-    folium.Marker(loc, popup=f"{noise_level} dB", icon=folium.Icon(color=color)).add_to(m)
-    st_folium(m, width=700, height=450)
