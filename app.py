@@ -5,30 +5,38 @@ import folium
 from streamlit_folium import st_folium
 import random
 
+st.set_page_config(page_title="Noise Level Mapper", layout="wide")
+
 st.title("🌍 Real-Time Noise Level Mapper")
 st.write("This demo simulates noise levels and shows them on a map based on your location.")
 
-# Step 1: Get location
-st.subheader("📍 Your Current Location")
+# Get user location
 g = geocoder.ip('me')
 lat, lon = g.latlng if g.latlng else (22.5726, 88.3639)
-st.write(f"Latitude: {lat}, Longitude: {lon}")
 
-# Step 2: Simulate noise data
-st.subheader("🎤 Simulated Noise Measurement")
-if st.button("Measure Noise"):
-    noise_level = random.uniform(30, 90)  # Simulate dB value
-    st.success(f"Noise Level: {noise_level:.2f} dB")
+# Initialize session state to remember data between reruns
+if "readings" not in st.session_state:
+    st.session_state["readings"] = []
 
-    # Step 3: Display map
+# Simulate noise level
+if st.button("🎤 Measure Noise"):
+    noise_level = random.uniform(30, 90)
+    st.session_state["readings"].append({"lat": lat, "lon": lon, "noise": noise_level})
+
+# Display readings
+if st.session_state["readings"]:
+    st.subheader("📊 Recorded Noise Levels")
+    for i, r in enumerate(st.session_state["readings"], 1):
+        st.write(f"{i}. Location: ({r['lat']:.4f}, {r['lon']:.4f}) → **{r['noise']:.2f} dB**")
+
+    # Create map
     m = folium.Map(location=[lat, lon], zoom_start=14)
-    folium.Marker(
-        [lat, lon],
-        popup=f"Noise: {noise_level:.2f} dB",
-        tooltip="Noise Location",
-        icon=folium.Icon(color="red" if noise_level > 70 else "green"),
-    ).add_to(m)
-    st_data = st_folium(m, width=700, height=500)
+    for r in st.session_state["readings"]:
+        folium.Marker(
+            [r["lat"], r["lon"]],
+            popup=f"Noise: {r['noise']:.2f} dB",
+            icon=folium.Icon(color="red" if r["noise"] > 70 else "green"),
+        ).add_to(m)
+    st_folium(m, width=700, height=500)
 else:
-    st.info("Click the button above to simulate a noise measurement.")
-
+    st.info("Click the button above to start measuring noise levels.")
