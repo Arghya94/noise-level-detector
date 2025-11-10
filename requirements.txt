@@ -1,0 +1,6 @@
+streamlit
+sounddevice
+numpy
+geocoder
+folium
+streamlit-folium
